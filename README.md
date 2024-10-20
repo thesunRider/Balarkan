@@ -55,7 +55,7 @@ $$
 $$
 
 $$ 
-\text{SOC} = \text{SOC}_0 + \frac{1}{C_N} \int_0^t I_{\text{batt}} \, dt 
+\text{SOC} = \text{SOC}_0 + \frac{1}{C_N} \int_0^t I_{\text{batt}} \, \text{dt}
 $$
 There will be internal battery looses and other things that come into play too
 
