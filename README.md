@@ -50,7 +50,7 @@ The evaluation criteria will include:
 5) Documentation and Presentation: Judging the clarity and thorough
 
 ### Research
-$\text{SoC}(t) = \frac{Q_{\text{remaining}}(t)}{Q_{\text{max}}(t)} \times 100 \, \%$
+$\text{SoC}(t) = \frac{Q_{\text{remaining}}(t)}{Q_{\text{max}}(t)} \times 100 \, \%$ \
 $\text{SOC} = \text{SOC}_0 + \frac{1}{C_N} \int_0^t I_{\text{batt}} \, dt$
 There will be internal battery looses and other things that come into play too
 
