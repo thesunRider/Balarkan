@@ -64,7 +64,7 @@ There will be internal battery looses and other things that come into play too
 Create a function from HPPC and OCV data whose input takes current and a timestamps from 0 to until that point of time and outputs SOC . can be trained to optimise with real world data too.
 
 $$
-SOC\_LEVEL = f(\text{Current History}, \text{Initial SOC}, \text{Open Source Voltage})
+SOCLEVEL = f(\text{Current History}, \text{Initial SOC}, \text{Open Source Voltage})
 $$
 
 ### TODO
