@@ -54,10 +54,6 @@ The evaluation criteria will include:
 ```math
 \text{SoC}(t) = \frac{Q_{\text{remaining}}(t)}{Q_{\text{max}}(t)} \times 100 \, \% 
 ```
-The coulmb counting method is as follows:
-```math
-\text{SOC} = \text{SOC}_0 + \frac{1}{C_N} \int_0^t \eta\text{I}_{\text{batt}} \, dt
-```
 
 There will be internal battery looses and other things that come into play too
 
@@ -86,8 +82,43 @@ In this dynamic model $U_{oc}$ and $U_L$ are the open-circuit and terminal volta
 
 $U_1$ represents the voltage across $R_1$ and $C_1$, while $U_2$ represents the voltage across $R_2$ and $C_2$. Furthermore, the functional connection of SOC may be used to estimate any parameter in the model. The SOC of the battery has been defined as an integral over current which we have already viewed.
 
-For convenience, η, representing Coulomb efficiency is set to 1 in the calculation. Moreover, the capacity of the battery is represented by CN, where SOC0 is the starting battery charge. In addition, for the stated dynamic 2-RC ECM, [SOC U1 U2] has been selected as the state variable. The state space equation may be discretized using Eqs. (3), (4) as follows.
-(5)
+The coulmb counting method is as follows:
+```math
+\text{SOC} = \text{SOC}_0 + \frac{1}{C_N} \int_0^t \eta\text{I}_{\text{batt}} \, dt
+```
+
+For convenience, η, representing Coulomb efficiency is set to 1 in the calculation. Moreover, the capacity of the battery is represented by $C_N$, where $\text{SOC}_0$ is the starting battery charge. In addition, for the stated dynamic 2-RC ECM, $SOC U_1 U_2$ has been selected as the state variable. The state space equation may be discretized using as follows.
+
+```math
+\begin{aligned}
+\begin{bmatrix}
+U_1(k+1) \\
+U_2(k+1) \\
+SOC(k+1)
+\end{bmatrix}
+&=
+\begin{bmatrix}
+e^{-\frac{\Delta t}{\zeta_1}} & 0 & 0 \\
+0 & e^{-\frac{\Delta t}{\zeta_2}} & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+U_1(k) \\
+U_2(k) \\
+SOC(k)
+\end{bmatrix}
++
+\begin{bmatrix}
+R_1\left(1 - e^{-\frac{\Delta t}{\zeta_1}}\right) \\
+R_2\left(1 - e^{-\frac{\Delta t}{\zeta_2}}\right) \\
+-\frac{\Delta t}{CN}
+\end{bmatrix}
+I(k) + W(k)
+\\
+U_L(k) &= U_{oc}\left(SOC(k)\right) - R_0 I_L(k) - U_1(k) - U_2(k) + v_k
+\end{aligned}
+```
+
 The observation and state equation of the system are represented by Eq. (5), where Δt represents the sampling period. Moreover, 
  and 
  are the time constants where 
