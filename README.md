@@ -111,7 +111,7 @@ SOC(k)
 \begin{bmatrix}
 R_1\left(1 - e^{-\frac{\Delta t}{\zeta_1}}\right) \\
 R_2\left(1 - e^{-\frac{\Delta t}{\zeta_2}}\right) \\
--\frac{\Delta t}{CN}
+-\frac{\Delta t}{C_N}
 \end{bmatrix}
 I(k) + W(k)
 \\
@@ -119,11 +119,12 @@ U_L(k) &= U_{oc}\left(SOC(k)\right) - R_0 I_L(k) - U_1(k) - U_2(k) + v_k
 \end{aligned}
 ```
 
-The observation and state equation of the system are represented by Eq. (5), where Δt represents the sampling period. Moreover, 
- and 
- are the time constants where 
-=C2R2 and 
- = C1R1 hold. Additionally, the symbols wk and vk denote process and observation noise. CN denotes the rated capacity of the battery. The current time point is expressed by k, while the future time point is represented by k + 1.
+The observation and state equation of the system are represented above, where:
+- Δt represents the sampling period.
+- $\zeta_1 \, \zeta_2$  are the time constants where $\zeta_2=C_2 R_2$ and $\zeta_1 = C_1 R_1$ hold.
+- $w_k$ and $v_k$ denote process and observation noise.
+- $C_N$ denotes the rated capacity of the battery. 
+- $k$ is the current time point and the future time point is represented by $k + 1$.
 
 ### TODO
 - [ ] 11min - Onboarding webinar watch
