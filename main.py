@@ -44,7 +44,6 @@ ax3.set_frame_on(True)
 ax3.patch.set_visible(False)
 fig.subplots_adjust(right=0.7)
 
-#ax1 =
 
 df_hppc_dsg.plot( x='Step(s)', y=['Current_inv(A)'],ax=ax,style='b-')
 df_hppc_dsg.plot( x='Step(s)', y=['Voltage(V)'],ax=ax,style='r-',secondary_y=True) 
