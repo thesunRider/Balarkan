@@ -79,8 +79,9 @@ In this dynamic model $U_{oc}$ and $U_L$ are the open-circuit and terminal volta
 
 ```math
 \begin{aligned}
- y &= x+2 \\
-   &= 2+x
+\text{UL} &= U_{\text{oc}} - I_L R_0 - U_1 - U_2 \\
+\frac{dU_1}{dt} &= \frac{I_L}{C_1} - \frac{U_1}{C_1 R_1} \\
+\frac{dU_2}{dt} &= \frac{I_L}{C_2} - \frac{U_2}{C_2 R_2}
 \end{aligned}
 ```
 
