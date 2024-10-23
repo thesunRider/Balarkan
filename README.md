@@ -129,9 +129,9 @@ The observation and state equation of the system are represented above, where:
 This can also be expressed as below:
 ```math
 \begin{aligned}
-V_0 &= I \cdot R_0 \\
-\frac{V_1}{R_{\text{eq}, 1}} + C_{\text{eq}, 1} \frac{dV_1}{dt} &= I_{\text{batt}} \\
-\frac{V_2}{R_{\text{eq}, 2}} + C_{\text{eq}, 2} \frac{dV_2}{dt} &= I_{\text{batt}} \\
+U_0 &= I \cdot R_0 \\
+\frac{U_1}{R_1} + C_{1} \frac{dU_1}{dt} &= I_{\text{batt}} \\
+\frac{U_2}{R_2} + C_{2} \frac{dU_2}{dt} &= I_{\text{batt}} \\
 \end{aligned}
 ```
 
