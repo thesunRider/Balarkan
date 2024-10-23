@@ -77,6 +77,12 @@ Such an RC filter should look like:
 
 In this dynamic model $U_{oc}$ and $U_L$ are the open-circuit and terminal voltage in the circuit, respectively. $R_1$ and $R_2$ are the electrochemical and concentration polarization resistance, and $C_1$ and $C_2$ are the electrochemical and concentration polarization capacitors, respectively. In addition, the ohmic internal resistance is $R_0$, and the current flowing through the voltage source is $I_L$. According to Kirchhoff's second and first circuit laws, we have
 
+```math
+\begin{aligned}
+ y &= x+2 \\
+   &= 2+x
+\end{aligned}
+```
 
 $U_1$ represents the voltage across $R_1$ and $C_1$, while $U_2$ represents the voltage across $R_2$ and $C_2$. Furthermore, the functional connection of SOC may be used to estimate any parameter in the model. The SOC of the battery has been defined as follows:
 
