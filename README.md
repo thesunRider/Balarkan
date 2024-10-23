@@ -126,6 +126,15 @@ The observation and state equation of the system are represented above, where:
 - $C_N$ denotes the rated capacity of the battery. 
 - $k$ is the current time point and the future time point is represented by $k + 1$.
 
+This can also be expressed as below:
+```math
+\begin{aligned}
+V_0 &= I \cdot R_0 \\
+\frac{V_1}{R_{\text{eq}, 1}} + C_{\text{eq}, 1} \frac{dV_1}{dt} &= I_{\text{batt}} \\
+\frac{V_2}{R_{\text{eq}, 2}} + C_{\text{eq}, 2} \frac{dV_2}{dt} &= I_{\text{batt}} \\
+\end{aligned}
+```
+
 ### TODO
 - [ ] 11min - Onboarding webinar watch
 
@@ -133,3 +142,5 @@ The observation and state equation of the system are represented above, where:
 
 1. https://www.sciencedirect.com/science/article/pii/S1452398124001159
 2. https://www.sciencedirect.com/science/article/pii/S2352152X24018905
+3. https://www.sciencedirect.com/science/article/pii/S2352152X23014317
+4. https://ieeexplore.ieee.org/abstract/document/7458455
