@@ -50,20 +50,19 @@ The evaluation criteria will include:
 4. Transient Convergence: Assessing how quickly and accurately the algorithm converges during transient conditions.
 5. Documentation and Presentation: Judging the clarity and thorough
 
-### Research
+### Research & Approach
 ```math
 \text{SoC}(t) = \frac{Q_{\text{remaining}}(t)}{Q_{\text{max}}(t)} \times 100 \, \% 
 ```
 The coulmb counting method is as follows:
 ```math
-\text{SOC} = \text{SOC}_0 + \frac{1}{C_N} \int_0^t \text{I}_{\text{batt}} \, dt
+\text{SOC} = \text{SOC}_0 + \frac{1}{C_N} \int_0^t \eta\text{I}_{\text{batt}} \, dt
 ```
 
 There will be internal battery looses and other things that come into play too
 
-Battery under test is: 
+Battery under test is: Li-Ion
 
-### Approach
 Create a function from HPPC and OCV data whose input takes current and a timestamps from 0 to until that point of time and outputs SOC . can be trained to optimise with real world data too.
 
 ```math
@@ -79,14 +78,13 @@ In this dynamic model $U_{oc}$ and $U_L$ are the open-circuit and terminal volta
 
 ```math
 \begin{aligned}
-\text{UL} &= U_{\text{oc}} - I_L R_0 - U_1 - U_2 \\
+\text{U_L} &= U_{\text{oc}} - I_L R_0 - U_1 - U_2 \\
 \frac{dU_1}{dt} &= \frac{I_L}{C_1} - \frac{U_1}{C_1 R_1} \\
 \frac{dU_2}{dt} &= \frac{I_L}{C_2} - \frac{U_2}{C_2 R_2}
 \end{aligned}
 ```
 
-$U_1$ represents the voltage across $R_1$ and $C_1$, while $U_2$ represents the voltage across $R_2$ and $C_2$. Furthermore, the functional connection of SOC may be used to estimate any parameter in the model. The SOC of the battery has been defined as follows:
-
+$U_1$ represents the voltage across $R_1$ and $C_1$, while $U_2$ represents the voltage across $R_2$ and $C_2$. Furthermore, the functional connection of SOC may be used to estimate any parameter in the model. The SOC of the battery has been defined as an integral over current which we have already viewed.
 
 For convenience, η, representing Coulomb efficiency is set to 1 in the calculation. Moreover, the capacity of the battery is represented by CN, where SOC0 is the starting battery charge. In addition, for the stated dynamic 2-RC ECM, [SOC U1 U2] has been selected as the state variable. The state space equation may be discretized using Eqs. (3), (4) as follows.
 (5)
