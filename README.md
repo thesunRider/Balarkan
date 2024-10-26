@@ -50,6 +50,17 @@ The evaluation criteria will include:
 4. Transient Convergence: Assessing how quickly and accurately the algorithm converges during transient conditions.
 5. Documentation and Presentation: Judging the clarity and thorough
 
+
+### Battery Data
+Basic information about the battery
+- Battery Type: lithium iron phosphate(LFP)
+- Battery capacity: 280Ah
+- Battery charge upper limit voltage: 3.65V
+- Battery discharge lower threshold voltage: 2.5V
+- Rated voltage: 3.2V
+- Current rate range: 0~1C
+- Rated current rate: 0.2C
+
 ### Research & Approach
 ```math
 \text{SoC}(t) = \frac{Q_{\text{remaining}}(t)}{Q_{\text{max}}(t)} \times 100 \, \% 
