@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+from alive_progress import alive_bar
 import PySpice.Logging.Logging as Logging
 logger = Logging.setup_logging()
 
@@ -73,10 +74,10 @@ def random_circuit_data():
 #r# and modify it
 #C1.capacitance = 10@u_F
 
-vis = True
+vis = False
 
 def show_circuit_data():
-	print(circuit)
+	#print(circuit)
 	simulator = circuit.simulator(temperature=25, nominal_temperature=25)
 	analysis = simulator.transient(step_time=50@u_us, end_time=100@u_ms)
 
@@ -108,8 +109,12 @@ def show_circuit_data():
 
 	return analysis.Vl,derv
 
-#random_circuit_data()
-show_circuit_data()
-random_circuit_data()
-show_circuit_data()
+data_Y = np.array([])
+data_X = np.array([])
+
+with alive_bar(1000) as bar:
+	for i in range(0,1000):
+		data_Y = np.append(data_Y,[random_circuit_data()])
+		data_X = np.append(data_X,[show_circuit_data()[0]]) #only include vdat
+		bar()
 
