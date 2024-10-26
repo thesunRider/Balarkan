@@ -1,0 +1,8 @@
+*.title BatteryModel
+Vb Vbat 0 10
+C1 N002 N001 C
+C2 N001 Vbat 10µ
+R0 Vload N002 R
+R1 N002 N001 R
+R2 N001 Vbat 100
+I§Vl Vload 0 PULSE(100m 0 10m 10m 10m 40m 100m)

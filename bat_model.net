@@ -1,0 +1,7 @@
+*.title BatteryModel
+VVb Vbat 0 10V
+R0 2 Vl 1Ohm
+C1 1 2 1uF
+R1 1 2 1Ohm
+C2 Vbat 1 2uF
+R2 Vbat 1 1Ohm
