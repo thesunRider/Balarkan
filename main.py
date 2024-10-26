@@ -35,6 +35,36 @@ df_real_3_04 = pd.read_parquet("pandas_cache\\Real_World_Operational_Data\\Scena
 df_real_4_04 = pd.read_parquet("pandas_cache\\Real_World_Operational_Data\\Scenario 4\\GenerateTestData_S4_DAY0to4.parquet")
 df_real_4_04 = pd.read_parquet("pandas_cache\\Real_World_Operational_Data\\Scenario 4\\GenerateTestData_S4_DAY4to7.parquet")
 
+f=1
+r0_min = 0.01
+R0 = 0.2
+r0_max = 0.3
+
+r1_min = f * 0.001
+R1 = f * 0.01
+r1_max = 1
+
+c1_min = 50
+C1 = 120
+c1_max = 1000
+
+r2_min = f * 0.01
+R2 = f * 0.01
+r2_max = 10
+
+c2_min = 500
+C2 = 5000
+c2_max = 120000
+
+start_soc_min = 0.01
+start_soc = 0.5
+start_soc_max = 1
+
+capacity_min = 50
+capacity = 71
+capacity_max = 78
+
+
 
 fig, ax = plt.subplots()
 ax3 = ax.twinx()
