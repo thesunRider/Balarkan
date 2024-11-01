@@ -1,11 +1,11 @@
 * C:\Users\Surya\Documents\projects\electronics\huwaei\model.asc
-Vb Vbat 0 10
-C1 N002 N001 1µ
-C2 N001 Vbat 1µ
-R0 Vload N002 10
-R1 N002 N001 10
-R2 N001 Vbat 10
-I§Vl Vload 0 PULSE(0 100m 10u 10u 10u 100u 200u)
-.tran 0 1m 0 1u
+Vb Vbat 0 3.2
+C1 N002 N001 11kF
+C2 N001 Vbat 75kF
+R0 Vload N002 3.2
+R1 N002 N001 0.1
+R2 N001 Vbat 0.3
+I§Vl Vload 0 PULSE(0 300 10m 1u 1u 51s 100s)
+.tran 0 200 0 10m
 .backanno
 .end

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-
+from scipy.signal import find_peaks
 ##THIS LOADS FROM THE CACHE DIRECTORIES
 
 dir_base = "pandas_cache\\"
@@ -65,20 +65,61 @@ capacity = 71
 capacity_max = 78
 
 
+dx = 0.1
+voltage_derv = np.gradient(df_hppc_dsg["Voltage(V)"],dx)
+cur_derv = np.gradient(df_hppc_dsg["Current_inv(A)"],dx)
+
+peaks_c, c_ = find_peaks(cur_derv, height=10) 
+peaks_c_n ,c_ = find_peaks(-cur_derv, height=10)
+
+peaks_v, v_ = find_peaks(voltage_derv, height=0.01) 
+peaks_v_n, v_ = find_peaks(-voltage_derv, height=0.01)
+
+peaks_current = np.sort(np.append(peaks_c , peaks_c_n))
+peaks_voltage = np.sort(np.append(peaks_v , peaks_v_n))
+
+df_hppc_dsg["vderv"] = voltage_derv
+df_hppc_dsg["cderv"] = cur_derv
 
 fig, ax = plt.subplots()
+fig.subplots_adjust(right=0.6)
+
+ax2 = ax.twinx()
 ax3 = ax.twinx()
-rspine = ax3.spines['right']
-rspine.set_position(('axes', 1.15))
-ax3.set_frame_on(True)
-ax3.patch.set_visible(False)
-fig.subplots_adjust(right=0.7)
+ax4 = ax.twinx()
 
 
-df_hppc_dsg.plot( x='Step(s)', y=['Current_inv(A)'],ax=ax,style='b-')
-df_hppc_dsg.plot( x='Step(s)', y=['Voltage(V)'],ax=ax,style='r-',secondary_y=True) 
-df_hppc_dsg.plot( x='Step(s)', y=['SOC_true(%)'],ax=ax3,style='g-') 
+ax3.spines.right.set_position(("axes", 1.2))
+ax4.spines.right.set_position(("axes", 1.5))
 
-ax3.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax3.get_lines()[0]],\
-           ['Current','Voltage','SOC LVL'], bbox_to_anchor=(1.5, 0.5))
+ax.plot(df_hppc_dsg["Step(s)"],df_hppc_dsg["Current_inv(A)"],"g-",label="Current")
+ax2.plot(df_hppc_dsg["Step(s)"],df_hppc_dsg["vderv"],"r-",label="vderv")
+ax3.plot(df_hppc_dsg["Step(s)"],df_hppc_dsg["cderv"],"b-",label="cderv")
+ax4.plot(df_hppc_dsg["Step(s)"],df_hppc_dsg["Voltage(V)"],color="aqua",label="Voltage")
+
+#p1 = df_hppc_dsg.plot( x='Step(s)', y=[''],ax=ax,style='b-')
+#p2 = df_hppc_dsg.plot( x='Step(s)', y=['Voltage(V)'],ax=ax,style='r-',secondary_y=True) 
+#p3 = df_hppc_dsg.plot( x='Step(s)', y=['cderv'],ax=ax2,style='g-')
+
+ax.set_ylabel("Current(A)")
+ax2.set_ylabel("vderv")
+ax3.set_ylabel("cderv")
+ax4.set_ylabel("Voltage")
+
+# right, left, top, bottom
+ax3.plot(peaks_current, cur_derv[peaks_current], "x")
+ax2.plot(peaks_voltage, voltage_derv[peaks_voltage], "x")
+
+def find_nearest(array, value):
+	array = np.asarray(array)
+	idx = (np.abs(array - value)).argmin()
+	return array[idx]
+
+res_ary = np.array([])
+for voltage_indx in peaks_voltage:
+	current_indx = find_nearest(peaks_current,voltage_indx)
+	res_ary = np.append(res_ary,1000*voltage_derv[voltage_indx]/cur_derv[current_indx])
+
+print(np.abs(res_ary),np.mean(np.abs(res_ary)))
+
 plt.show()
