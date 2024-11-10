@@ -155,3 +155,4 @@ U_0 &= I \cdot R_0 \\
 2. https://www.sciencedirect.com/science/article/pii/S2352152X24018905
 3. https://www.sciencedirect.com/science/article/pii/S2352152X23014317
 4. https://ieeexplore.ieee.org/abstract/document/7458455
+5. https://webthesis.biblio.polito.it/23537/1/tesi.pdf
