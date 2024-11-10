@@ -406,8 +406,8 @@ if vis_on:
 	#ax.plot(np.arange(0,tau_1_ary_fit.shape[0]),tau_1_ary_fit+tau_2_ary_fit,"x")
 	#ax.plot(np.arange(0,tau_ary.shape[0]),tau_ary,"o")
 
-	ax.plot(np.arange(0,c_1_ary_fit.shape[0]),c_1_ary_fit,"x")
-	ax.plot(np.arange(0,c_2_ary_fit.shape[0]),c_2_ary_fit,"o")
+	ax.plot(np.arange(0,Cb_array.shape[0]),Cb_array,"x")
+	ax.plot(np.arange(0,r0_ary.shape[0]),r0_ary,"o")
 	plt.show()
 
 print(c_1_ary_fit,c_2_ary_fit)
