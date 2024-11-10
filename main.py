@@ -43,7 +43,9 @@ df_real_3_04 = pd.read_parquet("pandas_cache\\Real_World_Operational_Data\\Scena
 df_real_4_04 = pd.read_parquet("pandas_cache\\Real_World_Operational_Data\\Scenario 4\\GenerateTestData_S4_DAY0to4.parquet")
 df_real_4_04 = pd.read_parquet("pandas_cache\\Real_World_Operational_Data\\Scenario 4\\GenerateTestData_S4_DAY4to7.parquet")
 
-db_working = df_hppc_dsg
+
+###### Determine 2RC model parameters
+db_working = df_hppc_chg
 
 def find_current_interval(data):
 	data = np.array(data) - np.mean(data)
@@ -70,9 +72,8 @@ def find_current_interval(data):
 curr_diff = 0
 margin_lapse = 100
 event_lapse_time = find_current_interval(db_working["Current_inv(A)"]) + margin_lapse
-#dx_c = 0.1
-#dx_v = 20
-voltage_derv = np.gradient(db_working["Voltage(V)"],db_working["Step(s)"]) *100
+
+voltage_derv = np.gradient(db_working["Voltage(V)"],db_working["Step(s)"]) *1000
 cur_derv = np.gradient(db_working["Current_inv(A)"],db_working["Step(s)"])
 
 #adjust heights according to the hppc current draw
@@ -171,14 +172,14 @@ two_event_list = categorise_event_double(peaks_current)
 Rb = 35
 
 #find Cb
-Cb = np.array([])
+Cb_array = np.array([])
 for i in range(0,len(event_list)-1):
 	first_indx = event_list[i][0] - 30
 	next_index = event_list[i+1][0] - 30
 
 	diff_voltage = np.abs((db_working["Voltage(V)"])[first_indx] - (db_working["Voltage(V)"])[next_index])
-	current_integral = np.trapezoid( (db_working["Current_inv(A)"])[first_indx : next_index] )
-	Cb = np.abs(np.append(Cb,current_integral/diff_voltage))
+	current_integral = np.trapezoid( (db_working["Current_inv(A)"]/1000)[first_indx : next_index] )
+	Cb_array = np.abs(np.append(Cb_array,current_integral/diff_voltage))
 
 
 #find R0
@@ -188,12 +189,13 @@ r0_ary = np.abs(find_r0())
 tau_ary = np.array([])
 r1r2_ary = np.array([])
 c1c2_ary = np.array([])
+vis_on = False
 
 for items in event_list:
 	start_index = items[0]
 	end_index = items[-1]
 	work_range = (db_working["Voltage(V)"])[start_index:end_index]
-	mavg = moving_average(work_range,100)
+	mavg = moving_average(work_range,100) #100 is the moving window size here (best for this dataset)
 	v_diff = np.abs(np.gradient(mavg,1))
 	get_indx_stable = np.where(v_diff == 0)[0]
 	if  len(get_indx_stable) == 0:
@@ -211,10 +213,17 @@ for items in event_list:
 	peak_start_voltage = db_working["Voltage(V)"][last_indx+10]
 	settled_voltage = db_working["Voltage(V)"][get_indx_stable[0]+start_index]
 	voltage_diff = peak_start_voltage - settled_voltage
-	curr_diff = db_working["Current_inv(A)"][last_indx - 10] - db_working["Current_inv(A)"][get_indx_stable[0]+start_index]
+	curr_diff = (db_working["Current_inv(A)"][last_indx - 10] - db_working["Current_inv(A)"][get_indx_stable[0]+start_index])/1000
 	r1r2_ary = np.append(r1r2_ary,abs(voltage_diff/curr_diff))
 	#find c1c2_ary ; tau/(R1+R2/2)
 	c1c2_ary = np.append(c1c2_ary,(time_difference/4)/(abs(voltage_diff/curr_diff)/2) )
+
+	if vis_on:
+		fig, ax = plt.subplots()
+		ax.plot(db_working["Step(s)"],db_working["Voltage(V)"])
+		ax.axvline(x = get_indx_stable[0]+start_index, color = 'r', linestyle = '-') 
+		ax.axvline(x = last_indx, color = 'r', linestyle = '-') 
+		plt.show()
 
 
 ##fit the curve and find actual values
@@ -224,14 +233,14 @@ print("r1r2_ary=",r1r2_ary)
 print("c1c2_ary=",c1c2_ary)
 print("tauary==",tau_ary)
 
-vis_on = False
+
 parameters_fitted = []
 for event_id,items in enumerate(two_event_list):
-	start_index = find_nearest(peaks_voltage,items[0])
-	end_index = find_nearest(peaks_voltage,items[1])
-	curr_diff = cur_derv[items[0]] #db_working["Current_inv(A)"][(items[1])] - db_working["Current_inv(A)"][(items[0])]
+	start_index = items[0]
+	end_index = items[1]
+	curr_diff = cur_derv[items[0]]/1000 #db_working["Current_inv(A)"][(items[1])] - db_working["Current_inv(A)"][(items[0])]
 
-	print("start_index",start_index,end_index,items,curr_diff)
+	#print("start_index",start_index,end_index,items,curr_diff)
 	work_range = (db_working["Voltage(V)"])[start_index:end_index]
 	number_items = work_range.shape[0]
 	mean_voltage = np.mean(work_range)
@@ -249,8 +258,8 @@ for event_id,items in enumerate(two_event_list):
 
 		fitParams, fitCovariances = curve_fit(rc2_func, x_axis, work_range, p0=initial_guess,bounds =(0,1e8))
 		perr = np.sqrt(np.diag(fitCovariances))
-		if np.any(perr > 1):
-			print("TM Error:",event_id,perr)
+		if np.any(perr > 1000):
+			#print("TM Error:",event_id,perr)
 			if vis_on:
 				plt.close(fig)
 			continue
@@ -259,10 +268,10 @@ for event_id,items in enumerate(two_event_list):
 			ax.plot(x_axis+ start_index,rc2_func(x_axis,*fitParams))
 			plt.show()
 
-		parameters_fitted.append({"id":event_id,"guess":initial_guess,"fits":(fitParams,fitCovariances,perr)})
+		parameters_fitted.append({"id":event_id,"guess":initial_guess,"fits":(fitParams,fitCovariances,perr),"range":items})
 
 	except RuntimeError as e:
-		print("Couldnt fit Event:",event_id)
+		#print("Couldnt fit Event:",event_id)
 		continue
 
 	
@@ -272,66 +281,133 @@ for event_id,items in enumerate(two_event_list):
 db_working["vderv"] = voltage_derv
 db_working["cderv"] = cur_derv
 #db_working["res"] = r0_ary
-#db_working["cap"] = Cb
+#db_working["cap"] = Cb_array
 
 
 
 
+if vis_on:
+	fig, ax = plt.subplots()
+	fig.subplots_adjust(right=0.6)
 
-fig, ax = plt.subplots()
-fig.subplots_adjust(right=0.6)
-
-ax2 = ax.twinx()
-ax3 = ax.twinx()
-ax4 = ax.twinx()
-
-
-ax3.spines.right.set_position(("axes", 1.2))
-ax4.spines.right.set_position(("axes", 1.5))
+	ax2 = ax.twinx()
+	ax3 = ax.twinx()
+	ax4 = ax.twinx()
 
 
-
-ax.plot(db_working["Step(s)"],db_working["Voltage(V)"],"g-",label="VOLTAGE")
-ax2.plot(db_working["Step(s)"],db_working["vderv"],"r-",label="vderv")
-
-#plot fited data 
-for fits in parameters_fitted:
-	start_index = two_event_list[fits["id"]][0]
-	end_index = two_event_list[fits["id"]][1]
-	x_axis = np.arange(0,end_index-start_index)
-	curr_diff = cur_derv[start_index] # db_working["Current_inv(A)"][end_index] - db_working["Current_inv(A)"][start_index]
-	ax.plot(x_axis+start_index,rc2_func(x_axis,*(fits["fits"][0]) ) )
-
-#ax3.plot(db_working["Step(s)"],db_working["cderv"],"b-",label="cderv")
-#ax4.plot(db_working["Step(s)"],db_working["Current_inv(A)"],color="aqua",label="Capacitance")
-
-#p1 = db_working.plot( x='Step(s)', y=[''],ax=ax,style='b-')
-#p2 = db_working.plot( x='Step(s)', y=['Voltage(V)'],ax=ax,style='r-',secondary_y=True) 
-#p3 = db_working.plot( x='Step(s)', y=['cderv'],ax=ax2,style='g-')
-
-ax.set_ylabel("VOLTAGE")
-ax2.set_ylabel("vderv")
-#ax3.set_ylabel("cderv")
-#ax4.set_ylabel("Current")
-
-# right, left, top, bottom
-#ax3.plot(peaks_current, cur_derv[peaks_current], "x")
-#ax2.plot(peaks_voltage, voltage_derv[peaks_voltage], "x")
-
-print_seps = False
-if print_seps:
-	for i in two_event_list:
-		col = np.random.rand(3,)
-		ax.axvline(x = i[0], color = 'r', linestyle = '-',c=col) 
-		ax.axvline(x = i[-1], color = 'r', linestyle = '-',c=col) 
-#print(np.abs(r0_ary),np.mean(np.abs(r0_ary)))
+	ax3.spines.right.set_position(("axes", 1.2))
+	ax4.spines.right.set_position(("axes", 1.5))
 
 
 
-#print(items,last_indx)
-#ax2.plot(last_indx,0,"x")
-#ax2.plot(get_indx_stable[0]+start_index,0,"x")
+	ax.plot(db_working["Step(s)"],db_working["Voltage(V)"],"g-",label="VOLTAGE")
+	ax2.plot(db_working["Step(s)"],db_working["vderv"],"r-",label="vderv")
+
+	#plot fited data 
+	for fits in parameters_fitted:
+		start_index = two_event_list[fits["id"]][0]
+		end_index = two_event_list[fits["id"]][1]
+		x_axis = np.arange(0,end_index-start_index)
+		curr_diff = cur_derv[start_index]/1000 # db_working["Current_inv(A)"][end_index] - db_working["Current_inv(A)"][start_index]
+		ax.plot(x_axis+start_index,rc2_func(x_axis,*(fits["fits"][0]) ) )
+
+	#ax3.plot(db_working["Step(s)"],db_working["cderv"],"b-",label="cderv")
+	#ax4.plot(db_working["Step(s)"],db_working["Current_inv(A)"],color="aqua",label="Capacitance")
+
+	#p1 = db_working.plot( x='Step(s)', y=[''],ax=ax,style='b-')
+	#p2 = db_working.plot( x='Step(s)', y=['Voltage(V)'],ax=ax,style='r-',secondary_y=True) 
+	#p3 = db_working.plot( x='Step(s)', y=['cderv'],ax=ax2,style='g-')
+
+	ax.set_ylabel("VOLTAGE")
+	ax2.set_ylabel("vderv")
+	#ax3.set_ylabel("cderv")
+	#ax4.set_ylabel("Current")
+
+	# right, left, top, bottom
+	#ax3.plot(peaks_current, cur_derv[peaks_current], "x")
+	#ax2.plot(peaks_voltage, voltage_derv[peaks_voltage], "x")
+
+	print_seps = False
+	if print_seps:
+		for i in two_event_list:
+			col = np.random.rand(3,)
+			ax.axvline(x = i[0], color = 'r', linestyle = '-',c=col) 
+			ax.axvline(x = i[-1], color = 'r', linestyle = '-',c=col) 
+	#print(np.abs(r0_ary),np.mean(np.abs(r0_ary)))
 
 
 
-plt.show()
+	#print(items,last_indx)
+	#ax2.plot(last_indx,0,"x")
+	#ax2.plot(get_indx_stable[0]+start_index,0,"x")
+
+
+	plt.show()
+
+
+############# determine soc left
+print("Determining SOC")
+vis_on = True
+
+def reject_outliers(data, m = 2.):
+	d = np.abs(data - np.median(data))
+	mdev = np.median(d)
+	s = d/mdev if mdev else np.zeros(len(d))
+	return data[s<m]
+
+cb_estim = np.mean(Cb_array)
+r0_estim = np.mean(r0_ary)
+rb_estim = Rb
+
+tau_1_ary_fit = np.array([])
+tau_2_ary_fit = np.array([])
+c_1_ary_fit = np.array([])
+c_2_ary_fit = np.array([])
+r_1_ary_fit = np.array([])
+r_2_ary_fit = np.array([])
+
+
+if vis_on:
+	fig, ax = plt.subplots()
+
+#{"id":event_id,"guess":initial_guess,"fits":(fitParams,fitCovariances,perr),"range":items})
+for count,items in enumerate(parameters_fitted):
+	#rc2_func(TI,r_1,tau_1,r_2,tau_2,c)
+	r_1_fit = items["fits"][0][0]
+	tau_1_fit = items["fits"][0][1]
+	r_2_fit = items["fits"][0][2]
+	tau_2_fit = items["fits"][0][3]
+
+	c_1_fit = tau_1_fit/r_1_fit
+	c_2_fit = tau_2_fit/r_2_fit
+	
+	tau_1_ary_fit = np.append(tau_1_ary_fit,tau_1_fit)
+	tau_2_ary_fit = np.append(tau_2_ary_fit,tau_2_fit)
+	r_1_ary_fit = np.append(r_1_ary_fit,r_1_fit)
+	r_2_ary_fit = np.append(r_2_ary_fit,r_2_fit)
+	c_1_ary_fit = np.append(c_1_ary_fit,c_1_fit)
+	c_2_ary_fit = np.append(c_2_ary_fit,c_2_fit)
+
+
+#limit the values
+tau_1_ary_fit = reject_outliers(tau_1_ary_fit,2)
+tau_2_ary_fit = reject_outliers(tau_2_ary_fit,2)
+
+r_1_ary_fit = reject_outliers(r_1_ary_fit,50)
+r_2_ary_fit = reject_outliers(r_2_ary_fit,50)
+
+c_1_ary_fit = reject_outliers(c_1_ary_fit,5)
+c_2_ary_fit = reject_outliers(c_2_ary_fit,5)
+
+
+if vis_on:
+	#print("FIT tau:",np.sort(tau_1_ary_fit+tau_2_ary_fit))
+	#print("main tau:",np.sort(tau_ary))
+	#ax.plot(np.arange(0,tau_1_ary_fit.shape[0]),tau_1_ary_fit+tau_2_ary_fit,"x")
+	#ax.plot(np.arange(0,tau_ary.shape[0]),tau_ary,"o")
+
+	ax.plot(np.arange(0,c_1_ary_fit.shape[0]),c_1_ary_fit,"x")
+	ax.plot(np.arange(0,c_2_ary_fit.shape[0]),c_2_ary_fit,"o")
+	plt.show()
+
+print(c_1_ary_fit,c_2_ary_fit)
