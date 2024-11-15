@@ -173,9 +173,9 @@ Rb = 35
 
 #find Cb
 Cb_array = np.array([])
-for i in range(0,len(event_list)-1):
-	first_indx = event_list[i][0] - 30
-	next_index = event_list[i+1][0] - 30
+for i in range(0,len(two_event_list)-1):
+	first_indx = find_nearest(peaks_voltage,two_event_list[i][0]) -10
+	next_index = find_nearest(peaks_voltage,two_event_list[i+1][0]) -10
 
 	diff_voltage = np.abs((db_working["Voltage(V)"])[first_indx] - (db_working["Voltage(V)"])[next_index])
 	current_integral = np.trapezoid( (db_working["Current_inv(A)"]/1000)[first_indx : next_index] )
@@ -227,12 +227,14 @@ for items in event_list:
 
 
 ##fit the curve and find actual values
+
+print("-----------------------")
 print("Calculated Intial Params:")
 print("R0=",r0_ary)
 print("r1r2_ary=",r1r2_ary)
 print("c1c2_ary=",c1c2_ary)
 print("tauary==",tau_ary)
-
+print("-----------------------")
 
 parameters_fitted = []
 for event_id,items in enumerate(two_event_list):
@@ -347,7 +349,6 @@ if vis_on:
 
 ############# determine soc left
 print("Determining SOC")
-vis_on = True
 
 def reject_outliers(data, m = 2.):
 	d = np.abs(data - np.median(data))
@@ -355,9 +356,7 @@ def reject_outliers(data, m = 2.):
 	s = d/mdev if mdev else np.zeros(len(d))
 	return data[s<m]
 
-cb_estim = np.mean(Cb_array)
-r0_estim = np.mean(r0_ary)
-rb_estim = Rb
+
 
 tau_1_ary_fit = np.array([])
 tau_2_ary_fit = np.array([])
@@ -399,6 +398,15 @@ r_2_ary_fit = reject_outliers(r_2_ary_fit,50)
 c_1_ary_fit = reject_outliers(c_1_ary_fit,5)
 c_2_ary_fit = reject_outliers(c_2_ary_fit,5)
 
+r0_ary = reject_outliers(r0_ary,5)
+Cb_array = reject_outliers(Cb_array,5)
+
+cb_estim = np.mean(Cb_array)
+r0_estim = np.mean(r0_ary)
+rb_estim = Rb
+
+max_ocv = 3.5
+
 
 if vis_on:
 	#print("FIT tau:",np.sort(tau_1_ary_fit+tau_2_ary_fit))
@@ -407,7 +415,66 @@ if vis_on:
 	#ax.plot(np.arange(0,tau_ary.shape[0]),tau_ary,"o")
 
 	ax.plot(np.arange(0,Cb_array.shape[0]),Cb_array,"x")
-	ax.plot(np.arange(0,r0_ary.shape[0]),r0_ary,"o")
+	#ax.plot(np.arange(0,r0_ary.shape[0]),r0_ary,"o")
 	plt.show()
 
-print(c_1_ary_fit,c_2_ary_fit)
+#### Simulating the circuit
+
+
+import PySpice.Logging.Logging as Logging
+logger = Logging.setup_logging()
+
+
+from PySpice.Probe.Plot import plot
+from PySpice.Spice.Netlist import Circuit, SubCircuitFactory
+from PySpice.Unit import *
+from PySpice.Spice.NgSpice.Shared import NgSpiceShared
+####################################################################################################
+
+working_dataset = df_hppc_chg
+
+#r# Let define a circuit.
+
+vis_on = True
+
+class ExternalISource(NgSpiceShared):
+
+	def __init__(self, **kwargs):
+
+		super().__init__(**kwargs)
+
+	def get_vsrc_data(self, voltage, time, node, ngspice_id):
+		self._logger.debug('ngspice_id-{} get_vsrc_data @{} node {}'.format(ngspice_id, time, node))
+		voltage[0] = 1
+		return 0
+
+
+	def get_isrc_data(self, current, time, node, ngspice_id):
+		self._logger.debug('ngspice_id-{} get_isrc_data @{} node {}'.format(ngspice_id, time, node))
+		current[0] = (working_dataset["Current_inv(A)"][time])/1000
+		return 0
+
+circuit = Circuit('BatteryModel')
+
+Vbat_elm = circuit.V('Vb', 'Vbat', circuit.gnd, max_ocv@u_V)
+
+Cb_elm = circuit.C(1, "Vbat", "Cbout", cb_estim@u_F)
+Rb_elm = circuit.R(0, "Cbout", circuit.gnd, rb_estim@u_Ω)
+
+#r# When we add an element to a circuit, we can get a reference to it or ignore it:
+ngspice_shared = ExternalISource(send_data=False)
+
+IL_elm = circuit.PulseCurrentSource('pulse', 'Vl', circuit.gnd,initial_value=0@u_mA, pulsed_value=300@u_mA, pulse_width=100@u_ms, period=500@u_ms,delay_time=1@u_ms)
+R0_elm = circuit.R(1, "Res_node", 'Vl', r0_estim@u_Ω)
+
+C1_elm = circuit.C(2, 1, "Res_node", np.mean(c_1_ary_fit)@u_F)
+R1_elm = circuit.R(2, 1, "Res_node", np.mean(r_1_ary_fit)@u_Ω)
+
+C2_elm = circuit.C(2, 'Cbout', 1, np.mean(c_2_ary_fit)@u_F)
+R2_elm = circuit.R(2, 'Cbout', 1, np.mean(r_2_ary_fit)@u_Ω)
+
+
+simulator = circuit.simulator(temperature=25, nominal_temperature=25,simulator='ngspice-shared', ngspice_shared=ngspice_shared)
+analysis = simulator.transient(start_time=1@u_s,step_time=1@u_s, end_time=1000@u_s) #step time is 1 second (interval in HPPC data)
+
+
