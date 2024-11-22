@@ -15,6 +15,7 @@ et-xmlfile==1.1.0
 exceptiongroup==1.2.2
 executing==2.1.0
 fastparquet==2024.5.0
+filterpy==1.4.5
 flatbuffers==24.3.25
 fonttools==4.54.1
 fsspec==2024.9.0

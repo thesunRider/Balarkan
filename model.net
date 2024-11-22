@@ -1,0 +1,13 @@
+* C:\Users\Surya\Documents\projects\electronics\huwaei\model.asc
+Vb Vbat 0 3.35
+C1 N003 N001 1000
+C2 N001 N002 700
+R0 Vload N003 0.5
+R1 N003 N001 0.1
+R2 N001 N002 0.3
+I§Vl Vload 0 PWL file=dsg_pwl_i.txt
+C3 N002 Vbat 2000k ic=0
+R3 N002 0 140
+.tran 0 12000 0 1
+.backanno
+.end

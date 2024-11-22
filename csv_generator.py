@@ -8,6 +8,7 @@ dir_hppc = dir_base + "HPPC_Data\\"
 dir_ocv = dir_base + "OCV_SOC_Data\\"
 dir_real = dir_base + "Real_World_Operational_Data\\"
 
+#first generate some csv files
 
 list_hppc = [os.path.abspath(dir_hppc+"\\"+fileName) for fileName in os.listdir(dir_hppc) if fileName.endswith(".xlsx")]
 list_ocv = [os.path.abspath(dir_ocv+"\\"+fileName) for fileName in os.listdir(dir_ocv) if fileName.endswith(".xlsx")]

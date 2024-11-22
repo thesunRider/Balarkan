@@ -12,9 +12,6 @@ import matplotlib.dates as dates
 from matplotlib.patches import Rectangle
 import pprint
 
-
-#THIS IS THE DATA LOADING SESSION (you need to run the cache generator before this)-----------------
-
 ##THIS LOADS FROM THE CACHE DIRECTORIES
 dir_base = "pandas_cache\\"
 dir_hppc = dir_base + "HPPC_Data\\"
@@ -165,7 +162,7 @@ def rc2_func(t,r_1,tau_1,r_2,tau_2,c):
 	i = curr_diff
 	return np.abs(r_1) *(1-np.exp(-t/np.abs(tau_1)))*i +  np.abs(r_2) *(1-np.exp(-t/np.abs(tau_2)))*i + c
 
-#create a list of events (an event is a current change)
+#get each event
 event_list = categorise_event_basedoncurrent(peaks_current) #categorise_event(peaks_current,event_lapse_time)
 two_event_list = categorise_event_double(peaks_current)
 #Assume Rb as 35 ohms (typical)
@@ -278,7 +275,7 @@ for event_id,items in enumerate(two_event_list):
 			ax.plot(x_axis+ start_index,rc2_func(x_axis,*fitParams))
 			plt.show()
 
-		#print("diffcur=",curr_diff)
+		print("diffcur=",curr_diff)
 		parameters_fitted.append({"id":event_id,"guess":initial_guess,"fits":(fitParams,fitCovariances,perr),"range":items})
 
 	except RuntimeError as e:
@@ -414,7 +411,6 @@ cb_estim = np.mean(Cb_array)
 r0_estim = np.mean(r0_ary)
 rb_estim = Rb
 
-
 max_ocv = 3.5
 
 
@@ -440,171 +436,63 @@ if vis_on:
 	#ax.plot(np.arange(0,r0_ary.shape[0]),r0_ary,"o")
 	plt.show()
 
-#### Simulating the circuit and try to optimise the model parameters
+#### Simulating the circuit
 
 
 import PySpice.Logging.Logging as Logging
-from scipy.interpolate import interp1d
 logger = Logging.setup_logging()
 
-####################################################################################################
 
 from PySpice.Probe.Plot import plot
 from PySpice.Spice.Netlist import Circuit, SubCircuitFactory
 from PySpice.Unit import *
-from PySpice.Spice.HighLevelElement import PieceWiseLinearCurrentSource
+from PySpice.Spice.NgSpice.Shared import NgSpiceShared
 ####################################################################################################
 
-
-working_db = df_hppc_dsg
-start_indx = 4050 # specify range of graph to analyse
-stop_indx = start_indx + 1000
-
-
-cb_val = 50*1e3
-rb_val = 40
-
-c2_val = 230
-r2_val = 0.03
-
-c1_val = 1050
-r1_val = 0.07
-
-r0_val = 0.28
-
-max_ocv = 4.18
-end_time = 1000
-step_time = 0.1
-
-
-time_db = working_db["Step(s)"][start_indx:stop_indx].to_numpy() - start_indx
-c_db = working_db["Current_inv(A)"][start_indx:stop_indx].to_numpy()
-v_db = working_db["Voltage(V)"][start_indx:stop_indx].to_numpy()
-
-pwl_ary = []
-for indx,i in enumerate(time_db):
-	if indx >= end_time:
-		break
-	#if indx > 0 and indx < len(time_db)-1:
-	#	if np.abs(c_db[indx+1] - c_db[indx-1]) < 10:
-	#		continue
-	pwl_ary.append((i@u_s,-c_db[indx]@u_mA))
-
-print("Starting sim -----------",len(pwl_ary))
-
-plt.plot(c_db)
-plt.show()
+working_dataset = df_hppc_chg
 
 #r# Let define a circuit.
+
+vis_on = False#True
+
+class ExternalISource(NgSpiceShared):
+
+	def __init__(self, **kwargs):
+
+		super().__init__(**kwargs)
+
+	def get_vsrc_data(self, voltage, time, node, ngspice_id):
+		self._logger.debug('ngspice_id-{} get_vsrc_data @{} node {}'.format(ngspice_id, time, node))
+		voltage[0] = 1
+		return 0
+
+
+	def get_isrc_data(self, current, time, node, ngspice_id):
+		self._logger.debug('ngspice_id-{} get_isrc_data @{} node {}'.format(ngspice_id, time, node))
+		current[0] = (working_dataset["Current_inv(A)"][time])/Current_inv
+		return 0
+
 circuit = Circuit('BatteryModel')
-
-
 
 Vbat_elm = circuit.V('Vb', 'Vbat', circuit.gnd, max_ocv@u_V)
 
-
-Cb_elm = circuit.C(0, 'Vbat', 1, cb_val@u_F,initial_condition=1)
-Rb_elm = circuit.R(0, 1, circuit.gnd, rb_val@u_Ω)
-
-C2_elm = circuit.C(2, 1, 2, c2_val@u_F)
-R2_elm = circuit.R(2, 1, 2, r2_val@u_Ω)
-
-
-C1_elm = circuit.C(1, 2, 3, c1_val@u_F)
-R1_elm = circuit.R(1, 2, 3, r1_val@u_Ω)
-
-R0_elm = circuit.R(3, 3, 'Vl', r0_val@u_Ω)
+Cb_elm = circuit.C(1, "Vbat", "Cbout", cb_estim@u_F)
+Rb_elm = circuit.R(0, "Cbout", circuit.gnd, rb_estim@u_Ω)
 
 #r# When we add an element to a circuit, we can get a reference to it or ignore it:
-IL_elm = circuit.PieceWiseLinearCurrentSource(
-    'pwlI0', 'Vl', circuit.gnd,
-    values=pwl_ary,
-)
+ngspice_shared = ExternalISource(send_data=False)
 
-print("sims------------")
+IL_elm = circuit.I('CLOAD', 'Vl', circuit.gnd, 'dc 0 external')# circuit.PulseCurrentSource('pulse', 'Vl', circuit.gnd,initial_value=0@u_mA, pulsed_value=300@u_mA, pulse_width=100@u_ms, period=500@u_ms,delay_time=1@u_ms)
+R0_elm = circuit.R(1, "Res_node", 'Vl', r0_estim@u_Ω)
 
+C1_elm = circuit.C(2, 1, "Res_node", np.mean(c_1_ary_fit)@u_F)
+R1_elm = circuit.R(2, 1, "Res_node", np.mean(r_1_ary_fit)@u_Ω)
 
-#PULSE(0 100m 10u 10u 10u 100u 200u)
-#r# and modify it
-#C1.capacitance = 10@u_F
-
-vis = True
-
-simulator = circuit.simulator(temperature=25, nominal_temperature=25)
-analysis = simulator.transient(start_time=0,step_time=step_time@u_s, end_time=end_time@u_s,use_initial_condition=True)
-
-working_v = v_db[0:end_time]
-working_t = time_db[0:end_time]
-
-time_spent = np.arange(0,end_time,step_time)
-
-def downsample(array, npts):
-	interpolated = interp1d(np.arange(len(array)), array, axis = 0, fill_value = 'extrapolate')
-	downsampled = interpolated(np.linspace(0, len(array), npts))
-	return downsampled
-
-interp_V_real = np.interp(time_spent,working_t ,working_v )
-#interp_V_real = np.roll(interp_V_real,-2)
-
-interp_V_sim = downsample(np.array(analysis.Vl),len(time_spent))
-interp_cur = downsample(np.array((analysis["3"] - analysis["Vl"])/R0_elm.resistance),len(time_spent)) 
-
-plt.plot(analysis.Vl)
-plt.show()
-
-print("Osizes=",len(analysis.Vl),len(working_v))
-print("Nsizes=",len(interp_V_sim),len(interp_V_real))
+C2_elm = circuit.C(3, 'Cbout', 1, np.mean(c_2_ary_fit)@u_F)
+R2_elm = circuit.R(3, 'Cbout', 1, np.mean(r_2_ary_fit)@u_Ω)
 
 
-def get_circuit_data(x_axis,R1,R2,C1,C2):
-	global circuit
-	Vb,Rb,Cb,R0 = x_axis
-	Vbat_elm.dc_value = Vb@u_V
-	Cb_elm.capacitance = Cb@u_F
-	Rb_elm.resistance = Rb@u_Ω
-
-	R0_elm.resistance = R0@u_Ω
-	R1_elm.resistance = R1@u_Ω
-	R2_elm.resistance = R2@u_Ω
-	C1_elm.capacitance = C1@u_F
-	C2_elm.capacitance = C2@u_F
-	#we are not returning the Vbat value as we are taking data differentials
-
-	simulator = circuit.simulator(temperature=25, nominal_temperature=25)
-	analysis = simulator.transient(start_time=0,step_time=step_time@u_s, end_time=end_time@u_s,use_initial_condition=True)
-	based_val = downsample(np.array(analysis.Vl),len(time_spent))
-	return based_val - np.mean(based_val)
-
-#Start simulation and correction
-
-initial_guess = np.array([r1_val,r2_val,c1_val,c2_val])
-fitParams, fitCovariances = curve_fit(get_circuit_data, [max_ocv,rb_val,cb_val,r0_val], interp_V_real-np.mean(interp_V_real), p0=initial_guess,bounds=([1e-3,1e-3,1,1],[2,2,1e4,1e4]),method="dogbox")
-perr = np.sqrt(np.diag(fitCovariances))
-
-print("fited parameters [r1_val,r2_val,c1_val,c2_val]=",fitParams)
-
-fited_analysis = get_circuit_data([max_ocv,rb_val,cb_val,r0_val],*fitParams)
-
-#plot the optimised circuit plot for a event witht he new data
-if vis:
-	figure, ax = plt.subplots(figsize=(10, 6))
-	ax2 = ax.twinx()
-
-	rspine = ax2.spines['right']
-	rspine.set_position(('axes', 1))
-	ax2.set_frame_on(True)
-	ax2.patch.set_visible(False)
-	figure.subplots_adjust(right=0.7)
-
-	ax.plot(time_spent,interp_V_sim - np.mean(interp_V_sim),color="red")
-	ax.plot(time_spent,interp_V_real - np.mean(interp_V_real),color="green")
-	ax.plot(time_spent,fited_analysis,color="blue")
-	ax2.plot(time_spent,interp_cur,color="blue")
+simulator = circuit.simulator(temperature=25, nominal_temperature=25,simulator='ngspice-shared', ngspice_shared=ngspice_shared)
+analysis = simulator.transient(start_time=1@u_s,step_time=1@u_s, end_time=1000@u_s) #step time is 1 second (interval in HPPC data)
 
 
-	ax.grid()
-	ax.set_xlabel('t [s]')
-	figure.autofmt_xdate()
-
-	plt.tight_layout()
-	plt.show()

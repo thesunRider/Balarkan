@@ -8,7 +8,7 @@ dir_hppc = dir_base + "HPPC_Data\\"
 dir_ocv = dir_base + "OCV_SOC_Data\\"
 dir_real = dir_base + "Real_World_Operational_Data\\"
 
-
+#generate some paraquet files (used in our example)
 list_hppc = [os.path.abspath(dir_hppc+"\\"+fileName) for fileName in os.listdir(dir_hppc) if fileName.endswith(".csv")]
 list_ocv = [os.path.abspath(dir_ocv+"\\"+fileName) for fileName in os.listdir(dir_ocv) if fileName.endswith(".csv")]
 list_real_1 = [os.path.abspath(dir_real+"Scenario 1\\"+fileName) for fileName in os.listdir(dir_real+"\\Scenario 1") if fileName.endswith(".csv")]

@@ -61,7 +61,7 @@ Basic information about the battery
 - Current rate range: 0~1C
 - Rated current rate: 0.2C
 
-### Research & Approach
+### Research
 ```math
 \text{SoC}(t) = \frac{Q_{\text{remaining}}(t)}{Q_{\text{max}}(t)} \times 100 \, \% 
 ```
@@ -95,7 +95,7 @@ $U_1$ represents the voltage across $R_1$ and $C_1$, while $U_2$ represents the 
 
 The coulmb counting method is as follows:
 ```math
-\text{SOC} = \text{SOC}_0 + \frac{1}{C_N} \int_0^t \eta\text{I}_{\text{batt}} \, dt
+\text{SOC} = \text{SOC}_0 + \eta \frac{1}{C_N} \int_0^t \eta\text{I}_{\text{batt}} \, dt
 ```
 
 For convenience, η, representing Coulomb efficiency is set to 1 in the calculation. Moreover, the capacity of the battery is represented by $C_N$, where $\text{SOC}_0$ is the starting battery charge. In addition, for the stated dynamic 2-RC ECM, $SOC U_1 U_2$ has been selected as the state variable. The state space equation may be discretized using as follows.
@@ -145,6 +145,40 @@ U_0 &= I \cdot R_0 \\
 \frac{U_2}{R_2} + C_{2} \frac{dU_2}{dt} &= I_{\text{batt}} \\
 \end{aligned}
 ```
+### Approach Methodolgy (Updated 22-11-2024)
+Know the soc function is 
+```math
+\begin{aligned}
+\text{SOC} = \text{SOC}_0 + \eta \frac{1}{C_b} \int_0^t \eta\text{I}_{\text{batt}} \, dt
+\end{aligned}
+```
+Here we know eta is the efficiency parameter which is a function of the 2RC parameters of the battery, If we can find the eta variation of the battery throughout the current cycles we can estimate the soc accurately. for this we can find the eta parameters at each soc level by reversing the soc equation and providing in real soc values from the dataset. now we have a list of new parameters which is eta values , we then use an lstm to train the 2RC value model against eta values. Hence predicting an eta value for any 2RC model parametre list. Then we plugin this new eta value , soc0 and current cycles into our soc equation and find the soc at new time.
+
+For analysis of the waveforms we split the dataset into multiple events. An event is said to have happened between two drastic current changes (dI/dt >10mA/s). we then analyse the rc parameters for each such events. For the simulation optimisation we need an initial guess of RC parametrs which we determine statistically by analysing all waveforms (this is also automated)
+
+## Advantage
+
+0. NO MATHEMATICS INVOLVED FOR 2RC MODEL , we are directly simulating the circuit and optimising the circuit in realtime thus we can increase the number of RC networks without worrying about complexity.
+1. LSTM corrects erorrs over the time as we are including errors in voltage to get SOC value
+2. Less complexity in design
+3. Faster convergence
+4. statistical data analysis
+
+### Running
+0. Install LtsSpice on the system
+1. Run: python pip install -r requirements.txt
+2. Run: csv_generaotr.py
+3. Run: cache_generator.py
+4. Run: main.py
+
+Or
+clone from https://github.com/thesunRider/Balarkan
+and follow from step 0,1 and run main.py
+
+### Expected Results and Methodology (Updated)
+We have not completed the eta evaluation , as of now we are at a stage where we simulate the circuit in realtime and get the optimised 2RC values. we need to produce the eta values to generate the SOC output (more time needed).
+
+Once you run main.py , you should be able to visualise events, the real circuit data at the event, the new simulated circuit data at the event and the fitted RC parameters.
 
 ### TODO
 - [ ] 11min - Onboarding webinar watch
@@ -156,3 +190,5 @@ U_0 &= I \cdot R_0 \\
 3. https://www.sciencedirect.com/science/article/pii/S2352152X23014317
 4. https://ieeexplore.ieee.org/abstract/document/7458455
 5. https://webthesis.biblio.polito.it/23537/1/tesi.pdf
+6. https://www.powerelectronicsnews.com/modeling-li-ion-batteries-with-equivalent-circuit-technology/
+7. https://www.sciencedirect.com/science/article/pii/S1452398123021910

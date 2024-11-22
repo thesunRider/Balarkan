@@ -25,51 +25,22 @@ from PySpice.Unit import *
 
 ####################################################################################################
 
+max_ocv = 3.35
 
 #r# Let define a circuit.
-f = 1
-
-r0_min = 0.1
-R0 = 0.2
-r0_max = 5
-
-r1_min = f * 0.01
-R1 = f * 0.4
-r1_max = 1
-
-c1_min = 100000
-C1 = 12000
-c1_max = 800000
-
-r2_min = f * 0.01
-R2 = f * 0.01
-r2_max = 0.1
-
-c2_min = 10000
-C2 = 5000
-c2_max = 100000
-
-start_soc_min = 0.01
-start_soc = 0.5
-start_soc_max = 1
-
-capacity_min = 50
-capacity = 71
-capacity_max = 78
-
-max_ocv = 3.7
-min_ocv = 2.5
-
 circuit = Circuit('BatteryModel')
 
 Vbat_elm = circuit.V('Vb', 'Vbat', circuit.gnd, max_ocv@u_V)
 #r# When we add an element to a circuit, we can get a reference to it or ignore it:
-IL_elm = circuit.PulseCurrentSource('pulse', 'Vl', circuit.gnd,initial_value=0@u_mA, pulsed_value=300@u_A, pulse_width=100@u_ms, period=500@u_ms,delay_time=1@u_ms)
+IL_elm = circuit.PulseCurrentSource('pulse', 'Vl', circuit.gnd,initial_value=0@u_mA, pulsed_value=500@u_A, pulse_width=1@u_s, period=2@u_s)
 R0_elm = circuit.R(0, "Res_node", 'Vl', r0_max@u_Ω)
 C1_elm = circuit.C(1, 1, "Res_node", c1_max@u_F)
 R1_elm = circuit.R(1, 1, "Res_node", r1_max@u_Ω)
 C2_elm = circuit.C(2, 'Vbat', 1, c2_max@u_F)
 R2_elm = circuit.R(2, 'Vbat', 1, r2_max@u_Ω)
+
+Cb_elm = circuit.C(2, 'Vbat', 1, c2_max@u_F)
+Rb_elm = circuit.C(2, 'Vbat', 1, c2_max@u_F)
 
 def random_circuit_data():
 	Vbat_elm.dc_value = round(random.uniform(min_ocv, max_ocv),2)@u_V
